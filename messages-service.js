@@ -3,7 +3,7 @@ const { Client } = require('hazelcast-client');
 
 const app = express();
 const port = process.argv[2] || 3004;
-let queue
+let queue;
 
 (async () => {
   try {
@@ -11,22 +11,32 @@ let queue
       clusterName: "hz_lab"
     });
     queue = await hz.getQueue('queue'); 
+    startProcessingMessages(); // починаємо обробку повідомлень з черги
   } catch (error) {
     console.error('Failed to initialize Hazelcast client:', error);
     process.exit(1); 
   }
 })();
 
-let messages = []
+let messages = [];
+
+async function startProcessingMessages() {
+  while (true) {
+    try {
+      let taked_item = await queue.take();
+      messages.push(taked_item);
+      console.log(`Taked item from queue messages:${port} ${taked_item}`);
+    } catch (error) {
+      console.error('Failed to take item from queue:', error);
+    }
+  }
+}
 
 app.get('/messages', async (req, res) => {
   res.json(messages);
 });
 
 app.post('/messages', async (req, res) => {
-  let taked_item = await queue.take()
-  messages.push(taked_item)
-  console.log(`Taked item from queue messages:${port} ${taked_item}`)
   res.sendStatus(200)
 });
 
